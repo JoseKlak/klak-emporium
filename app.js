@@ -7,6 +7,17 @@
   "use strict";
 
   var STORAGE_KEY = "importa.v1";
+
+  /* ══════════════════════════════════════════════════════════════
+     CONFIGURAÇÃO DA NUVEM — preencha a chave abaixo UMA vez.
+     Assim, em qualquer aparelho (celular, outro PC) você só precisa
+     entrar com e-mail e senha; não precisa colar nada de novo.
+     A chave "anon/publishable" pode ficar aqui: ela é pública por
+     design, e quem protege seus dados é a trava (RLS) do Supabase.
+     NUNCA coloque aqui a chave "service_role"/"secret".
+     ══════════════════════════════════════════════════════════════ */
+  var NUVEM_URL = "https://bjyjtokmtkqtpdpfnlcb.supabase.co";
+  var NUVEM_KEY = "sb_publishable_UPia2wVbWJXcSjS_ln9Nhg_Wxf0-_bS";
   var MESES = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
   var MESES_LONGO = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
   var CATEGORIAS = ["Celular","Notebook","Tablet","TV","Áudio","Games","Câmera","Drone","Acessórios","Informática","Outro"];
@@ -85,6 +96,9 @@
     if (!state.settings.admin) state.settings.admin = { pass: hashStr("klak2026") }; // senha padrão: klak2026
     if (!state.settings.lojaNome) state.settings.lojaNome = "Klak Emporium";
     if (state.settings.whatsapp == null) state.settings.whatsapp = "5545998309108";
+    // nuvem já vem configurada pelo próprio app (vale para qualquer aparelho)
+    if (!state.settings.sbUrl && NUVEM_URL) state.settings.sbUrl = NUVEM_URL;
+    if (!state.settings.sbKey && NUVEM_KEY) state.settings.sbKey = NUVEM_KEY;
     if (state.settings.entregaTexto == null) state.settings.entregaTexto = "Entrega grátis para Toledo, Cascavel e Marechal";
     // migração: produtos que já estavam visíveis na vitrine continuam visíveis
     if (!state.settings.migrouVitrine){
