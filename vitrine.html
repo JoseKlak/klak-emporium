@@ -2,7 +2,6 @@
 <html lang="pt-BR"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Klak Emporium</title>
-<meta name="description" content="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 72 72'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231baf7a'/%3E%3Cstop offset='1' stop-color='%232a78d6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='4' y='4' width='64' height='64' rx='18' fill='url(%23g)'/%3E%3Cg stroke='%23fff' stroke-width='6' stroke-linecap='round' fill='none'%3E%3Cpath d='M26 20 V52'/%3E%3Cpath d='M26 36 L46 20'/%3E%3Cpath d='M26 36 L46 52'/%3E%3C/g%3E%3Ccircle cx='46' cy='20' r='4' fill='%23fff'/%3E%3Ccircle cx='46' cy='52' r='4' fill='%23fff'/%3E%3C/svg%3E">
 <style>
 :root{--bg:#1f242e;--surf:#2a313d;--surf2:#333b49;--ink:#f3f5f9;--ink2:#ccd4e0;--muted:#98a3b5;
@@ -37,7 +36,7 @@ main{max-width:1120px;margin:0 auto;padding:22px 20px 60px}
 .tagfree{display:inline-block;font-size:11px;font-weight:800;color:var(--brand);background:rgba(37,210,149,.14);border:1px solid rgba(37,210,149,.35);padding:3px 9px;border-radius:999px}
 .stock{font-size:12px;color:var(--muted)}
 .cta{display:block;margin:0 15px 15px;padding:11px;border-radius:11px;background:var(--surf2);border:1px solid var(--bd);color:var(--ink);text-align:center;font-weight:700;font-size:14px}
-.none{text-align:center;color:var(--muted);padding:50px 20px;display:none}
+.aviso{text-align:center;color:var(--muted);padding:60px 20px}
 .back{background:none;border:none;color:var(--ink2);font:inherit;font-size:14px;font-weight:600;cursor:pointer;padding:8px 0;margin-bottom:12px;display:flex;align-items:center;gap:7px}
 .back:hover{color:var(--brand)}
 .detail{display:grid;grid-template-columns:1.05fr .95fr;gap:34px;align-items:start}
@@ -55,45 +54,45 @@ main{max-width:1120px;margin:0 auto;padding:22px 20px 60px}
 .wa{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;margin-top:14px;padding:15px;border-radius:13px;background:var(--brand);color:#08231a;text-decoration:none;font-weight:800;font-size:16px;border:none;cursor:pointer}
 .wa:hover{background:var(--brand2);color:#fff}
 .share{width:100%;margin-top:9px;padding:11px;border-radius:11px;background:var(--surf2);border:1px solid var(--bd);color:var(--ink2);font:inherit;font-weight:700;font-size:13.5px;cursor:pointer}
-.share:hover{color:var(--ink)}
 .vid{margin-top:18px;border-radius:14px;overflow:hidden;background:#000;aspect-ratio:16/9}
 .vid iframe,.vid video{width:100%;height:100%;border:0;display:block}
 .secttl{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:22px 0 8px}
 footer{text-align:center;color:var(--muted);font-size:12.5px;padding:26px 20px 40px;border-top:1px solid var(--bd);margin-top:26px}
 .hide{display:none!important}
 </style></head><body>
-<header><div class="hwrap"><div class="brand" onclick="location.hash=''"><svg viewBox="0 0 72 72" width="42" height="42" aria-hidden="true"><defs><linearGradient id="kg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1baf7a"/><stop offset="1" stop-color="#2a78d6"/></linearGradient></defs><g fill="#8fb4ff" opacity=".45"><rect x="1" y="24" width="7" height="5" rx="2.5"/><rect x="1" y="33.5" width="7" height="5" rx="2.5"/><rect x="1" y="43" width="7" height="5" rx="2.5"/><rect x="64" y="24" width="7" height="5" rx="2.5"/><rect x="64" y="33.5" width="7" height="5" rx="2.5"/><rect x="64" y="43" width="7" height="5" rx="2.5"/></g><rect x="8" y="8" width="56" height="56" rx="16" fill="url(#kg)"/><g stroke="#fff" stroke-width="5.5" stroke-linecap="round" fill="none"><path d="M27 22 V50"/><path d="M27 36 L45 22"/><path d="M27 36 L45 50"/></g><circle cx="45" cy="22" r="3.4" fill="#fff"/><circle cx="45" cy="50" r="3.4" fill="#fff"/></svg><div><div class="kname">KLAK EMPORIUM</div><div class="ktag">EMPORIUM · ELETRÔNICOS</div></div></div></div></header>
-<div class="ship">🚚 Entrega grátis para Toledo, Cascavel e Marechal</div>
-<div class="tools" id="tools"><input id="q" type="search" placeholder="Buscar produto..."><div class="chips" id="chips"></div></div>
-<main><div id="home"><div class="grid" id="grid"></div><div class="none" id="none">Nenhum produto encontrado.</div></div><div id="detail" class="hide"></div></main>
-<footer>Klak Emporium · Entrega grátis para Toledo, Cascavel e Marechal</footer>
+<header><div class="hwrap"><div class="brand" onclick="location.hash=''"><svg viewBox="0 0 72 72" width="42" height="42" aria-hidden="true"><defs><linearGradient id="kg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1baf7a"/><stop offset="1" stop-color="#2a78d6"/></linearGradient></defs><g fill="#8fb4ff" opacity=".45"><rect x="1" y="24" width="7" height="5" rx="2.5"/><rect x="1" y="33.5" width="7" height="5" rx="2.5"/><rect x="1" y="43" width="7" height="5" rx="2.5"/><rect x="64" y="24" width="7" height="5" rx="2.5"/><rect x="64" y="33.5" width="7" height="5" rx="2.5"/><rect x="64" y="43" width="7" height="5" rx="2.5"/></g><rect x="8" y="8" width="56" height="56" rx="16" fill="url(#kg)"/><g stroke="#fff" stroke-width="5.5" stroke-linecap="round" fill="none"><path d="M27 22 V50"/><path d="M27 36 L45 22"/><path d="M27 36 L45 50"/></g><circle cx="45" cy="22" r="3.4" fill="#fff"/><circle cx="45" cy="50" r="3.4" fill="#fff"/></svg><div><div class="kname" id="lojaNome">…</div><div class="ktag">EMPORIUM · ELETRÔNICOS</div></div></div><div class="slogan" id="slogan"></div></div></header>
+<div class="ship hide" id="ship"></div>
+<div class="tools hide" id="tools"><input id="q" type="search" placeholder="Buscar produto..."><div class="chips" id="chips"></div></div>
+<main><div id="carregando" class="aviso">Carregando produtos…</div>
+<div id="home" class="hide"><div class="grid" id="grid"></div><div class="aviso hide" id="none">Nenhum produto encontrado.</div></div>
+<div id="detail" class="hide"></div></main>
+<footer id="rodape"></footer>
 <script>
-var P=[{"id":"prod_mtkcmu7b9oza30","n":"Smartphone Xiaomi Redmi Note 15 Preto 8GB RAM 256GB ROM (2510DRA23L)","c":"Celular","pr":1400,"d":"• Redmi Note 15 4G","im":["https://m.media-amazon.com/images/I/61XgofTTv1L.jpg","https://m.media-amazon.com/images/I/415mBguZF6L.jpg","https://m.media-amazon.com/images/I/61we00Sj7PL.jpg","https://m.media-amazon.com/images/I/411yfT9KSmL.jpg","https://m.media-amazon.com/images/I/61ZadsoZqtL.jpg","https://m.media-amazon.com/images/I/41XESIXseVL.jpg","https://m.media-amazon.com/images/G/32/br-events/2026/9do9/DO/HP/VD78_DO_9do9_SWM2_400x39.jpg","https://m.media-amazon.com/images/S/al-na-9d5791cf-3faf/e3919b74-92c9-4b52-bf8d-f9290f7a86f1.jpeg","https://m.media-amazon.com/images/S/al-na-9d5791cf-3faf/05f9daf4-0621-4fd4-b79f-be058553b303.png","https://m.media-amazon.com/images/I/41XSH21Uw5L.jpg"],"v":"","e":1,"fg":true,"ic":"📱"}];
-var ZAP="5545998309108", CATS=["Celular"], SHOWSTOCK=true, FREETXT="Entrega grátis para Toledo, Cascavel e Marechal";
+var API="https://bjyjtokmtkqtpdpfnlcb.supabase.co", KEY="sb_publishable_UPia2wVbWJXcSjS_ln9Nhg_Wxf0-_bS", DONO="24ac80f6-7db7-4e28-bacf-5182b6f79a3f";
+var P=[], LOJA={}, filtro="all", CATS=[];
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function brl(v){return "R$ "+Number(v).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});}
 var q=document.getElementById("q"),grid=document.getElementById("grid"),none=document.getElementById("none"),
-  home=document.getElementById("home"),detail=document.getElementById("detail"),tools=document.getElementById("tools"),chips=document.getElementById("chips");
-var filtro="all";
-chips.innerHTML=["all"].concat(CATS).map(function(c){return '<button class="chip'+(c==="all"?" active":"")+'" data-f="'+esc(c)+'">'+(c==="all"?"Todos":esc(c))+'</button>';}).join("");
+  home=document.getElementById("home"),detail=document.getElementById("detail"),tools=document.getElementById("tools"),
+  chips=document.getElementById("chips"),carregando=document.getElementById("carregando");
 function cardHTML(p){
   var media=p.im.length?'<img src="'+p.im[0]+'" alt="'+esc(p.n)+'" loading="lazy">':'<div class="ph">'+p.ic+'</div>';
   return '<article class="card" data-id="'+p.id+'"><div class="media">'+media+'</div><div class="body">'+
     '<span class="cat">'+esc(p.c)+'</span><h2>'+esc(p.n)+'</h2>'+
     '<div class="price">'+(p.pr?brl(p.pr):"Consulte")+'</div>'+
-    (p.fg&&FREETXT?'<span class="tagfree">🚚 Entrega grátis</span>':"")+
-    (SHOWSTOCK?'<div class="stock">'+p.e+' disponível(is)</div>':"")+
+    (p.fg&&LOJA.entrega?'<span class="tagfree">🚚 Entrega grátis</span>':"")+
+    '<div class="stock">'+p.e+' disponível(is)</div>'+
   '</div><div class="cta">Ver detalhes</div></article>';
 }
 function renderHome(){
   var t=(q.value||"").toLowerCase().trim(), n=0, out="";
   P.forEach(function(p){ var ok=(filtro==="all"||p.c===filtro)&&(!t||(p.n+" "+p.d).toLowerCase().indexOf(t)>=0); if(ok){out+=cardHTML(p);n++;} });
-  grid.innerHTML=out; none.style.display=n?"none":"block";
+  grid.innerHTML=out; none.classList.toggle("hide", n>0);
 }
 function waLink(p){
   var msg="Olá! Tenho interesse no produto: "+p.n+(p.pr?" ("+brl(p.pr)+")":"");
   try{ msg+="\n"+location.href.split("#")[0]+"#p="+p.id; }catch(e){}
-  return ZAP?("https://wa.me/"+ZAP+"?text="+encodeURIComponent(msg)):"";
+  return LOJA.whatsapp?("https://wa.me/"+LOJA.whatsapp+"?text="+encodeURIComponent(msg)):"";
 }
 function videoHTML(v){
   if(!v) return "";
@@ -110,8 +109,8 @@ function renderDetail(p){
     '<div class="gal"><div class="big">'+main+'</div>'+th+'</div>'+
     '<div class="info"><span class="cat">'+esc(p.c)+'</span><h1>'+esc(p.n)+'</h1>'+
       '<div class="pbox"><div class="big-price">'+(p.pr?brl(p.pr):"Consulte o preço")+'</div>'+
-        (p.fg&&FREETXT?'<div style="margin-top:10px"><span class="tagfree">🚚 '+esc(FREETXT)+'</span></div>':"")+
-        (SHOWSTOCK?'<div class="stock" style="margin-top:8px">'+p.e+' unidade(s) disponível(is)</div>':"")+
+        (p.fg&&LOJA.entrega?'<div style="margin-top:10px"><span class="tagfree">🚚 '+esc(LOJA.entrega)+'</span></div>':"")+
+        '<div class="stock" style="margin-top:8px">'+p.e+' unidade(s) disponível(is)</div>'+
         (wl?'<a class="wa" href="'+wl+'" target="_blank" rel="noopener">💬 Falar no WhatsApp</a>':"")+
         '<button class="share" id="share">🔗 Copiar link deste produto</button>'+
       '</div>'+
@@ -132,7 +131,26 @@ function route(){
 }
 grid.addEventListener("click",function(e){ var c=e.target.closest?e.target.closest(".card"):null; if(c) location.hash="p="+c.dataset.id; });
 q.addEventListener("input",renderHome);
-chips.addEventListener("click",function(e){ if(e.target.classList.contains("chip")){ [].forEach.call(chips.children,function(x){x.classList.remove("active");}); e.target.classList.add("active"); filtro=e.target.dataset.f; renderHome(); } });
+chips.addEventListener("click",function(e){ if(e.target.classList.contains("chip")){ [].forEach.call(chips.children,function(x){x.classList.remove("active")}); e.target.classList.add("active"); filtro=e.target.dataset.f; renderHome(); } });
 window.addEventListener("hashchange",route);
-route();
+function iniciar(){
+  fetch(API+"/rest/v1/vitrine_publica?select=loja,produtos&dono=eq."+DONO, { headers:{ apikey:KEY, Authorization:"Bearer "+KEY } })
+   .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+   .then(function(rows){
+     var row = rows && rows[0];
+     if(!row){ carregando.textContent="A loja ainda não tem produtos publicados."; return; }
+     LOJA = row.loja||{}; P = row.produtos||[];
+     document.getElementById("lojaNome").textContent=(LOJA.nome||"Klak Emporium").toUpperCase();
+     document.getElementById("slogan").textContent=LOJA.slogan||"";
+     document.title = LOJA.nome||"Klak Emporium";
+     if(LOJA.entrega){ var sp=document.getElementById("ship"); sp.textContent="🚚 "+LOJA.entrega; sp.classList.remove("hide"); }
+     document.getElementById("rodape").textContent=(LOJA.nome||"")+(LOJA.entrega?" · "+LOJA.entrega:"");
+     CATS=[]; P.forEach(function(p){ if(p.c&&CATS.indexOf(p.c)<0) CATS.push(p.c); });
+     chips.innerHTML=["all"].concat(CATS).map(function(c){return '<button class="chip'+(c==="all"?" active":"")+'" data-f="'+esc(c)+'">'+(c==="all"?"Todos":esc(c))+'</button>';}).join("");
+     carregando.classList.add("hide");
+     route();
+   })
+   .catch(function(e){ carregando.innerHTML="Não consegui carregar os produtos agora.<br><br><button class=\"chip\" onclick=\"location.reload()\">Tentar de novo</button>"; });
+}
+iniciar();
 </script></body></html>
