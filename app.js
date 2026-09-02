@@ -84,8 +84,8 @@
     try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) {}
     if (raw) { try { state = JSON.parse(raw); } catch (e) { state = null; } }
     if (!state) {
-      state = { produtos: [], vendas: [], viagens: [], settings: { theme: "light" } };
-      saveState();
+      state = { produtos: [], vendas: [], viagens: [], settings: { theme: "light" }, atualizadoEm: 0 };
+      saveLocalOnly();
     }
     loadStateFix();
   }
@@ -117,8 +117,24 @@
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
     catch (e) { toast("Erro ao salvar. Armazenamento cheio? Fotos ocupam espaço.", "err"); }
   }
+  // impressão digital barata do que realmente importa (sem carregar as fotos inteiras)
+  function assinaturaDados(){
+    var p=(state.produtos||[]).map(function(x){
+      var fotos=(x.imagens||[]).reduce(function(a,i){ return a+(i?i.length:0); },0);
+      return [x.id,x.nome,x.precoVenda,x.custoUnit,x.quantidade,x.anunciado,x.entregaGratis,x.categoria,(x.descricao||"").length,x.video||"",fotos].join(",");
+    }).join("|");
+    var v=(state.vendas||[]).map(function(x){ return [x.id,x.data,x.quantidade,x.precoUnit,x.taxaPct,x.plataforma,x.produtoId].join(","); }).join("|");
+    var t=(state.viagens||[]).map(function(x){ return [x.id,x.data,x.nome,x.destino,(x.custos||[]).map(function(c){return c.desc+":"+c.valor;}).join(";")].join(","); }).join("|");
+    var st=state.settings||{};
+    var c=[st.lojaNome,st.whatsapp,st.slogan,st.entregaTexto,st.siteUrl,(st.admin&&st.admin.pass)].join("~");
+    return hashStr(p+"#"+v+"#"+t+"#"+c);
+  }
+  var ultimaAssinatura = null;
+
   function saveState() {
-    state.atualizadoEm = Date.now();
+    var sig = assinaturaDados();
+    if (ultimaAssinatura === null) ultimaAssinatura = sig;      // 1ª vez: só registra
+    else if (sig !== ultimaAssinatura){ state.atualizadoEm = Date.now(); ultimaAssinatura = sig; }
     clearTimeout(saveTimer);
     saveTimer = setTimeout(function () {
       saveLocalOnly();
@@ -1565,9 +1581,10 @@
       .then(function(r){ if(r.error) return cb(false,r.error.message); cb(true, r.data); },
             function(e){ cb(false,String(e)); });
   }
-  function enviarParaNuvem(cb){
+  function enviarParaNuvem(cb, forcar){
     cb = cb || function(){};
     if(!sb||!cloudUser) return cb(false,"não conectado");
+    if(!forcar && estadoVazio(state)) return cb(false,"nada para enviar (este aparelho está vazio)");
     var payload = { user_id:cloudUser.id, estado:state, atualizado_em:new Date(state.atualizadoEm||Date.now()).toISOString() };
     sb.from("klak_dados").upsert(payload).then(function(r){
       if(r.error){ cloudStatus="erro"; cloudMsg=r.error.message; return cb(false,r.error.message); }
@@ -1585,26 +1602,40 @@
   }
 
   // decide entre o que está no aparelho e o que está na nuvem: vence o mais recente
+  function estadoVazio(s){
+    s = s || state;
+    return !(s.produtos && s.produtos.length) && !(s.vendas && s.vendas.length) && !(s.viagens && s.viagens.length);
+  }
+
   function sincronizar(cb){
     cb = cb || function(){};
     puxarDaNuvem(function(ok, remoto){
       if(!ok){ cb(false, remoto); return; }
-      var localEm = state.atualizadoEm || 0;
-      if (!remoto || !remoto.estado){
-        enviarParaNuvem(function(ok2,err){ cb(ok2, ok2 ? "primeiro envio: seus dados foram para a nuvem" : err); });
-        return;
+      var localEm  = state.atualizadoEm || 0;
+      var localVazio = estadoVazio(state);
+      var temRemoto  = !!(remoto && remoto.estado);
+      var remotoVazio = !temRemoto || estadoVazio(remoto.estado);
+
+      function baixar(motivo){
+        state = remoto.estado; loadStateFix(); saveLocalOnly();
+        ultimaAssinatura = assinaturaDados();
+        cb(true, motivo);
       }
+      // 1) aparelho novo/vazio e a nuvem tem dados -> SEMPRE baixa
+      if (localVazio && !remotoVazio) return baixar("baixei seus dados da nuvem");
+      // 2) nuvem vazia e este aparelho tem dados -> envia
+      if (remotoVazio && !localVazio){
+        return enviarParaNuvem(function(ok2,err){ cb(ok2, ok2 ? "enviei seus dados para a nuvem" : err); }, true);
+      }
+      // 3) os dois vazios -> nada a fazer
+      if (localVazio && remotoVazio) return cb(true, "ainda não há dados em lugar nenhum");
+      // 4) os dois têm dados -> vence o mais recente
       var remotoEm = remoto.estado.atualizadoEm || new Date(remoto.atualizado_em||0).getTime() || 0;
-      if (remotoEm > localEm){
-        state = remoto.estado;
-        loadStateFix();
-        saveLocalOnly();
-        cb(true, "baixei a versão da nuvem (mais recente)");
-      } else if (localEm > remotoEm){
-        enviarParaNuvem(function(ok2,err){ cb(ok2, ok2 ? "enviei este aparelho para a nuvem (mais recente)" : err); });
-      } else {
-        cb(true, "já estava tudo igual");
+      if (remotoEm > localEm) return baixar("baixei a versão da nuvem (mais recente)");
+      if (localEm > remotoEm){
+        return enviarParaNuvem(function(ok2,err){ cb(ok2, ok2 ? "enviei este aparelho para a nuvem (mais recente)" : err); }, true);
       }
+      cb(true, "já estava tudo igual");
     });
   }
 
@@ -1728,6 +1759,7 @@
 
   function boot(){
     loadState();
+    ultimaAssinatura = assinaturaDados();   // referência inicial: abrir o app não é "alterar"
     loadAdmin();
     setTheme(state.settings.theme||"light");
     document.querySelectorAll(".nav-item").forEach(function(b){ b.addEventListener("click",function(){ go(b.getAttribute("data-route")); }); });
