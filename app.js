@@ -7,6 +7,7 @@
   "use strict";
 
   var STORAGE_KEY = "importa.v1";
+  var APP_VERSAO = "8";   // aparece em Configurações — confere se o aparelho está atualizado
 
   /* ══════════════════════════════════════════════════════════════
      CONFIGURAÇÃO DA NUVEM — preencha a chave abaixo UMA vez.
@@ -920,6 +921,7 @@
   // sobe o catálogo junto com a sincronização automática
   function publicarAuto(){
     if(!cloudUser) return;
+    if(estadoVazio(state)) return;   // segurança: automático nunca apaga a loja
     publicarNaNuvem(function(ok,err){ if(!ok) console.warn("loja:",err); });
   }
 
@@ -1651,6 +1653,7 @@
     var box = el("div",{});
     var r = nuvemResumo();
     box.appendChild(el("p",{class:"small "+(r.cls==="pos"?"pos":(r.cls==="neg"?"neg":"muted")),style:"margin-top:0"}, r.txt));
+    box.appendChild(el("p",{class:"hint",style:"margin-top:0"},"Versão do app neste aparelho: "+APP_VERSAO+" — se estiver diferente em outro computador, aperte Ctrl+F5 lá."));
 
     if (!cloudConfigurada()){
       var fUrl=el("input",{class:"input",value:state.settings.sbUrl||"",placeholder:"https://xxxxx.supabase.co"});
