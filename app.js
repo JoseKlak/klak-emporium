@@ -800,9 +800,29 @@
      ======================================================== */
   function renderVitrine(view){
     var pubBtn=null;
-    if (isAdmin){ pubBtn=el("button",{class:"btn primary"},"🌐 Publicar vitrine"); pubBtn.addEventListener("click",publicarVitrineDireto); }
-    view.appendChild(pageHead(isAdmin?"Vitrine":(state.settings.lojaNome||"Klak Emporium"), isAdmin?"Prévia do que o cliente vê — e publicação do site":(state.settings.slogan||"Produtos disponíveis"), pubBtn));
+    if (isAdmin){ pubBtn=el("button",{class:"btn primary"},"🌐 Atualizar loja online"); pubBtn.addEventListener("click",publicarVitrineDireto); }
+    view.appendChild(pageHead(isAdmin?"Vitrine":(state.settings.lojaNome||"Klak Emporium"), isAdmin?"Prévia do que o cliente vê":(state.settings.slogan||"Produtos disponíveis"), pubBtn));
     var anunciados=state.produtos.filter(function(p){ return estoqueQtd(p)>0 && p.anunciado; });
+
+    if (isAdmin){
+      var st, cls;
+      if (!cloudUser){ st="Você não está conectado à nuvem — entre em Configurações para a loja online funcionar."; cls="var(--danger)"; }
+      else if (state.settings.ultimaPublicacao){ st="Loja online atualizada em "+fmtDateTime(state.settings.ultimaPublicacao)+"."; cls="var(--brand)"; }
+      else { st="A loja online ainda não foi publicada. Clique em \"Atualizar loja online\"."; cls="var(--warn)"; }
+      var linhas=[ el("div",{style:"font-weight:700"},"Loja online"), el("div",{class:"small",style:"margin-top:4px"},st) ];
+      if (state.settings.siteUrl){
+        linhas.push(el("div",{class:"small",style:"margin-top:6px"},[
+          el("span",{class:"muted"},"Link do cliente: "),
+          el("a",{href:state.settings.siteUrl,target:"_blank",rel:"noopener"},state.settings.siteUrl)
+        ]));
+      }
+      var shellBtn=el("button",{class:"btn sm"},"⬇️ Baixar vitrine.html (só na 1ª vez)");
+      shellBtn.addEventListener("click",exportVitrineShell);
+      linhas.push(el("div",{class:"row-flex mt",style:"gap:8px"},[shellBtn]));
+      linhas.push(el("div",{class:"small muted",style:"margin-top:6px"},"Depois de enviar esse arquivo ao GitHub uma vez, a loja passa a se atualizar sozinha — não precisa mais mexer nele."));
+      view.appendChild(el("div",{class:"card card-pad",style:"border-left:4px solid "+cls+";margin-bottom:18px"},linhas));
+    }
+
     if (!anunciados.length){
       view.appendChild(emptyState("🛍️","Sua vitrine está vazia", isAdmin?"Cadastre produtos com foto e preço no Estoque — os que tiverem estoque aparecem aqui.":"Em breve novos produtos.", isAdmin?"Ir para o Estoque":null, function(){ go("estoque"); }));
       return;
@@ -837,32 +857,67 @@
   function publicarVitrineDireto(){
     var prods=produtosPublicaveis(true);
     if (!prods.length){ toast("Marque ao menos um produto como \"Publicar na vitrine\".","err"); return; }
-    exportVitrine(prods, true);
+    if (!cloudUser){ toast("Entre na nuvem em Configurações para atualizar a loja.","err"); return; }
+    publicarNaNuvem(function(ok,info){
+      if(ok) toast("Loja online atualizada ✓ — "+info+" produto(s)","good");
+      else toast("Erro ao atualizar a loja: "+info,"err");
+      render();
+    });
   }
   function produtosPublicaveis(somenteAnunciados){
     return state.produtos.filter(function(p){ return estoqueQtd(p)>0 && (!somenteAnunciados || p.anunciado); });
   }
 
-  function exportVitrine(prods, mostrarEstoque){
-    var loja=state.settings.lojaNome||"Klak Emporium";
-    var slogan=state.settings.slogan||"";
-    var zap=(state.settings.whatsapp||"").replace(/\D/g,"");
-    var entregaTxt=state.settings.entregaTexto||"";
-    var cats=[]; prods.forEach(function(p){ if(p.categoria&&cats.indexOf(p.categoria)<0) cats.push(p.categoria); });
-
-    var dados = prods.map(function(p){
+  /* ---------- catálogo público (o que o cliente pode ver) ---------- */
+  // ATENÇÃO: só entram campos seguros. Custo, margem, lucro, vendas e viagens
+  // NUNCA saem daqui.
+  function catalogoPublico(){
+    var prods = produtosPublicaveis(true).map(function(p){
       var imgs=(p.imagens&&p.imagens.length)?p.imagens:(p.imagem?[p.imagem]:[]);
       return { id:p.id, n:p.nome, c:p.categoria||"", pr:p.precoVenda||0, d:p.descricao||"",
                im:imgs, v:p.video||"", e:estoqueQtd(p), fg:(p.entregaGratis!==false), ic:catIcon(p.categoria) };
     });
-    var json = JSON.stringify(dados).replace(/<\//g, "<\\/");
+    return {
+      loja: { nome: state.settings.lojaNome||"Klak Emporium",
+              slogan: state.settings.slogan||"",
+              whatsapp: (state.settings.whatsapp||"").replace(/\D/g,""),
+              entrega: state.settings.entregaTexto||"" },
+      produtos: prods
+    };
+  }
 
+  // envia o catálogo para a nuvem — é isso que faz a loja online mudar
+  function publicarNaNuvem(cb){
+    cb = cb || function(){};
+    if(!sb||!cloudUser) return cb(false,"você precisa entrar na nuvem (Configurações)");
+    var cat = catalogoPublico();
+    sb.from("vitrine_publica").upsert({
+      dono: cloudUser.id, loja: cat.loja, produtos: cat.produtos,
+      atualizado_em: new Date().toISOString()
+    }).then(function(r){
+      if(r.error) return cb(false, r.error.message);
+      state.settings.ultimaPublicacao = Date.now(); saveLocalOnly();
+      cb(true, cat.produtos.length);
+    }, function(e){ cb(false,String(e)); });
+  }
+
+  // sobe o catálogo junto com a sincronização automática
+  function publicarAuto(){
+    if(!cloudUser) return;
+    publicarNaNuvem(function(ok,err){ if(!ok) console.warn("loja:",err); });
+  }
+
+  /* ---------- gera o vitrine.html (só uma vez!) ----------
+     A página é uma "casca": ela busca os produtos na nuvem toda vez que abre.
+     Por isso você não precisa gerar de novo a cada mudança.               */
+  function exportVitrineShell(){
+    if(!cloudUser){ toast("Entre na nuvem primeiro (Configurações).","err"); return; }
+    var URLB = state.settings.sbUrl, KEYB = state.settings.sbKey, DONO = cloudUser.id;
     var html = [
 '<!DOCTYPE html>',
 '<html lang="pt-BR"><head><meta charset="UTF-8">',
 '<meta name="viewport" content="width=device-width,initial-scale=1">',
-'<title>'+escHtml(loja)+'</title>',
-'<meta name="description" content="'+escHtml(slogan)+'">',
+'<title>'+escHtml(state.settings.lojaNome||"Klak Emporium")+'</title>',
 '<link rel="icon" type="image/svg+xml" href="'+KLAK_FAVICON+'">',
 '<style>',
 ':root{--bg:#1f242e;--surf:#2a313d;--surf2:#333b49;--ink:#f3f5f9;--ink2:#ccd4e0;--muted:#98a3b5;',
@@ -897,8 +952,7 @@
 '.tagfree{display:inline-block;font-size:11px;font-weight:800;color:var(--brand);background:rgba(37,210,149,.14);border:1px solid rgba(37,210,149,.35);padding:3px 9px;border-radius:999px}',
 '.stock{font-size:12px;color:var(--muted)}',
 '.cta{display:block;margin:0 15px 15px;padding:11px;border-radius:11px;background:var(--surf2);border:1px solid var(--bd);color:var(--ink);text-align:center;font-weight:700;font-size:14px}',
-'.none{text-align:center;color:var(--muted);padding:50px 20px;display:none}',
-/* ----- detalhe ----- */
+'.aviso{text-align:center;color:var(--muted);padding:60px 20px}',
 '.back{background:none;border:none;color:var(--ink2);font:inherit;font-size:14px;font-weight:600;cursor:pointer;padding:8px 0;margin-bottom:12px;display:flex;align-items:center;gap:7px}',
 '.back:hover{color:var(--brand)}',
 '.detail{display:grid;grid-template-columns:1.05fr .95fr;gap:34px;align-items:start}',
@@ -916,45 +970,45 @@
 '.wa{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;margin-top:14px;padding:15px;border-radius:13px;background:var(--brand);color:#08231a;text-decoration:none;font-weight:800;font-size:16px;border:none;cursor:pointer}',
 '.wa:hover{background:var(--brand2);color:#fff}',
 '.share{width:100%;margin-top:9px;padding:11px;border-radius:11px;background:var(--surf2);border:1px solid var(--bd);color:var(--ink2);font:inherit;font-weight:700;font-size:13.5px;cursor:pointer}',
-'.share:hover{color:var(--ink)}',
 '.vid{margin-top:18px;border-radius:14px;overflow:hidden;background:#000;aspect-ratio:16/9}',
 '.vid iframe,.vid video{width:100%;height:100%;border:0;display:block}',
 '.secttl{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:22px 0 8px}',
 'footer{text-align:center;color:var(--muted);font-size:12.5px;padding:26px 20px 40px;border-top:1px solid var(--bd);margin-top:26px}',
 '.hide{display:none!important}',
 '</style></head><body>',
-'<header><div class="hwrap"><div class="brand" onclick="location.hash=\'\'">'+KLAK_ICON+'<div><div class="kname">'+escHtml(loja.toUpperCase())+'</div><div class="ktag">EMPORIUM · ELETRÔNICOS</div></div></div>'+(slogan?'<div class="slogan">'+escHtml(slogan)+'</div>':'')+'</div></header>',
-(entregaTxt?'<div class="ship">🚚 '+escHtml(entregaTxt)+'</div>':''),
-'<div class="tools" id="tools"><input id="q" type="search" placeholder="Buscar produto..."><div class="chips" id="chips"></div></div>',
-'<main><div id="home"><div class="grid" id="grid"></div><div class="none" id="none">Nenhum produto encontrado.</div></div><div id="detail" class="hide"></div></main>',
-'<footer>'+escHtml(loja)+(entregaTxt?' · '+escHtml(entregaTxt):'')+'</footer>',
+'<header><div class="hwrap"><div class="brand" onclick="location.hash=\'\'">'+KLAK_ICON+'<div><div class="kname" id="lojaNome">…</div><div class="ktag">EMPORIUM · ELETRÔNICOS</div></div></div><div class="slogan" id="slogan"></div></div></header>',
+'<div class="ship hide" id="ship"></div>',
+'<div class="tools hide" id="tools"><input id="q" type="search" placeholder="Buscar produto..."><div class="chips" id="chips"></div></div>',
+'<main><div id="carregando" class="aviso">Carregando produtos…</div>',
+'<div id="home" class="hide"><div class="grid" id="grid"></div><div class="aviso hide" id="none">Nenhum produto encontrado.</div></div>',
+'<div id="detail" class="hide"></div></main>',
+'<footer id="rodape"></footer>',
 '<script>',
-'var P='+json+';',
-'var ZAP="'+zap+'", CATS='+JSON.stringify(cats)+', SHOWSTOCK='+(mostrarEstoque?'true':'false')+', FREETXT='+JSON.stringify(entregaTxt)+';',
+'var API="'+URLB+'", KEY="'+KEYB+'", DONO="'+DONO+'";',
+'var P=[], LOJA={}, filtro="all", CATS=[];',
 'function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}',
 'function brl(v){return "R$ "+Number(v).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});}',
 'var q=document.getElementById("q"),grid=document.getElementById("grid"),none=document.getElementById("none"),',
-'  home=document.getElementById("home"),detail=document.getElementById("detail"),tools=document.getElementById("tools"),chips=document.getElementById("chips");',
-'var filtro="all";',
-'chips.innerHTML=["all"].concat(CATS).map(function(c){return \'<button class="chip\'+(c==="all"?" active":"")+\'" data-f="\'+esc(c)+\'">\'+(c==="all"?"Todos":esc(c))+\'</button>\';}).join("");',
+'  home=document.getElementById("home"),detail=document.getElementById("detail"),tools=document.getElementById("tools"),',
+'  chips=document.getElementById("chips"),carregando=document.getElementById("carregando");',
 'function cardHTML(p){',
 '  var media=p.im.length?\'<img src="\'+p.im[0]+\'" alt="\'+esc(p.n)+\'" loading="lazy">\':\'<div class="ph">\'+p.ic+\'</div>\';',
 '  return \'<article class="card" data-id="\'+p.id+\'"><div class="media">\'+media+\'</div><div class="body">\'+',
 '    \'<span class="cat">\'+esc(p.c)+\'</span><h2>\'+esc(p.n)+\'</h2>\'+',
 '    \'<div class="price">\'+(p.pr?brl(p.pr):"Consulte")+\'</div>\'+',
-'    (p.fg&&FREETXT?\'<span class="tagfree">🚚 Entrega grátis</span>\':"")+',
-'    (SHOWSTOCK?\'<div class="stock">\'+p.e+\' disponível(is)</div>\':"")+',
+'    (p.fg&&LOJA.entrega?\'<span class="tagfree">🚚 Entrega grátis</span>\':"")+',
+'    \'<div class="stock">\'+p.e+\' disponível(is)</div>\'+',
 '  \'</div><div class="cta">Ver detalhes</div></article>\';',
 '}',
 'function renderHome(){',
 '  var t=(q.value||"").toLowerCase().trim(), n=0, out="";',
 '  P.forEach(function(p){ var ok=(filtro==="all"||p.c===filtro)&&(!t||(p.n+" "+p.d).toLowerCase().indexOf(t)>=0); if(ok){out+=cardHTML(p);n++;} });',
-'  grid.innerHTML=out; none.style.display=n?"none":"block";',
+'  grid.innerHTML=out; none.classList.toggle("hide", n>0);',
 '}',
 'function waLink(p){',
 '  var msg="Olá! Tenho interesse no produto: "+p.n+(p.pr?" ("+brl(p.pr)+")":"");',
 '  try{ msg+="\\n"+location.href.split("#")[0]+"#p="+p.id; }catch(e){}',
-'  return ZAP?("https://wa.me/"+ZAP+"?text="+encodeURIComponent(msg)):"";',
+'  return LOJA.whatsapp?("https://wa.me/"+LOJA.whatsapp+"?text="+encodeURIComponent(msg)):"";',
 '}',
 'function videoHTML(v){',
 '  if(!v) return "";',
@@ -971,8 +1025,8 @@
 '    \'<div class="gal"><div class="big">\'+main+\'</div>\'+th+\'</div>\'+',
 '    \'<div class="info"><span class="cat">\'+esc(p.c)+\'</span><h1>\'+esc(p.n)+\'</h1>\'+',
 '      \'<div class="pbox"><div class="big-price">\'+(p.pr?brl(p.pr):"Consulte o preço")+\'</div>\'+',
-'        (p.fg&&FREETXT?\'<div style="margin-top:10px"><span class="tagfree">🚚 \'+esc(FREETXT)+\'</span></div>\':"")+',
-'        (SHOWSTOCK?\'<div class="stock" style="margin-top:8px">\'+p.e+\' unidade(s) disponível(is)</div>\':"")+',
+'        (p.fg&&LOJA.entrega?\'<div style="margin-top:10px"><span class="tagfree">🚚 \'+esc(LOJA.entrega)+\'</span></div>\':"")+',
+'        \'<div class="stock" style="margin-top:8px">\'+p.e+\' unidade(s) disponível(is)</div>\'+',
 '        (wl?\'<a class="wa" href="\'+wl+\'" target="_blank" rel="noopener">💬 Falar no WhatsApp</a>\':"")+',
 '        \'<button class="share" id="share">🔗 Copiar link deste produto</button>\'+',
 '      \'</div>\'+',
@@ -993,9 +1047,28 @@
 '}',
 'grid.addEventListener("click",function(e){ var c=e.target.closest?e.target.closest(".card"):null; if(c) location.hash="p="+c.dataset.id; });',
 'q.addEventListener("input",renderHome);',
-'chips.addEventListener("click",function(e){ if(e.target.classList.contains("chip")){ [].forEach.call(chips.children,function(x){x.classList.remove("active");}); e.target.classList.add("active"); filtro=e.target.dataset.f; renderHome(); } });',
+'chips.addEventListener("click",function(e){ if(e.target.classList.contains("chip")){ [].forEach.call(chips.children,function(x){x.classList.remove("active")}); e.target.classList.add("active"); filtro=e.target.dataset.f; renderHome(); } });',
 'window.addEventListener("hashchange",route);',
-'route();',
+'function iniciar(){',
+'  fetch(API+"/rest/v1/vitrine_publica?select=loja,produtos&dono=eq."+DONO, { headers:{ apikey:KEY, Authorization:"Bearer "+KEY } })',
+'   .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })',
+'   .then(function(rows){',
+'     var row = rows && rows[0];',
+'     if(!row){ carregando.textContent="A loja ainda não tem produtos publicados."; return; }',
+'     LOJA = row.loja||{}; P = row.produtos||[];',
+'     document.getElementById("lojaNome").textContent=(LOJA.nome||"Klak Emporium").toUpperCase();',
+'     document.getElementById("slogan").textContent=LOJA.slogan||"";',
+'     document.title = LOJA.nome||"Klak Emporium";',
+'     if(LOJA.entrega){ var sp=document.getElementById("ship"); sp.textContent="🚚 "+LOJA.entrega; sp.classList.remove("hide"); }',
+'     document.getElementById("rodape").textContent=(LOJA.nome||"")+(LOJA.entrega?" · "+LOJA.entrega:"");',
+'     CATS=[]; P.forEach(function(p){ if(p.c&&CATS.indexOf(p.c)<0) CATS.push(p.c); });',
+'     chips.innerHTML=["all"].concat(CATS).map(function(c){return \'<button class="chip\'+(c==="all"?" active":"")+\'" data-f="\'+esc(c)+\'">\'+(c==="all"?"Todos":esc(c))+\'</button>\';}).join("");',
+'     carregando.classList.add("hide");',
+'     route();',
+'   })',
+'   .catch(function(e){ carregando.innerHTML="Não consegui carregar os produtos agora.<br><br><button class=\\"chip\\" onclick=\\"location.reload()\\">Tentar de novo</button>"; });',
+'}',
+'iniciar();',
 '<\/script></body></html>'
 ].join("\n");
 
@@ -1003,7 +1076,7 @@
     var url=URL.createObjectURL(blob);
     var a=el("a",{href:url,download:"vitrine.html"}); document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function(){ URL.revokeObjectURL(url); },1500);
-    toast("vitrine.html gerado ✓ — "+prods.length+" produtos","good");
+    toast("vitrine.html gerado ✓ — envie ao GitHub uma vez só","good");
   }
 
   /* ---------- importador de anúncio (Amazon / lojas) ---------- */
@@ -1499,6 +1572,7 @@
     sb.from("klak_dados").upsert(payload).then(function(r){
       if(r.error){ cloudStatus="erro"; cloudMsg=r.error.message; return cb(false,r.error.message); }
       cloudStatus="ok"; cloudMsg=""; state.settings.ultimaSync=Date.now();
+      publicarAuto();
       cb(true);
     }, function(e){ cloudStatus="erro"; cloudMsg=String(e); cb(false,String(e)); });
   }
